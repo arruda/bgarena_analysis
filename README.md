@@ -1,5 +1,5 @@
 # BoardGame Arena Analysis
-Gathering and analysing data from pt.boardgamearena.com (yes, the gathered info will be in Portuguese).
+Gathering and analysis of data from pt.boardgamearena.com (yes, the gathered info will be in Portuguese).
 
 ## Some idea of things to analyse
 
