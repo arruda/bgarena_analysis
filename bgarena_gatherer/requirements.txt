@@ -1,0 +1,5 @@
+lxml==3.6.1
+psycopg2==2.6.2
+Scrapy==1.1.1
+scrapy-splash==0.7
+SQLAlchemy==1.0.14

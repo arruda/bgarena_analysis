@@ -1,0 +1,16 @@
+splash:
+  image: scrapinghub/splash
+  ports:
+    - "5023:5023"
+    - "8050:8050"
+    - "8051:8051"
+
+db:
+  image: postgres:9.3
+  volumes:
+    - /var/lib/postgresql/data
+  environment:
+    - POSTGRES_USER=bgarena
+    - POSTGRES_PASSWORD=bgarena
+  ports:
+    - "5432:5432"

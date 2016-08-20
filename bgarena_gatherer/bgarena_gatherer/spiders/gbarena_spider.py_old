@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+import scrapy
+from scrapy_splash import SplashRequest
+
+from scrapy.http.headers import Headers
+from bgarena_gatherer.items import BgarenaGathererItem
+
+script = """
+function main(splash)
+  local url = splash.args.url
+  assert(splash:go(url))
+  assert(splash:wait(5.5))
+  return {
+    html = splash:html(),
+    har = splash:har(),
+  }
+end
+"""
+
+class BGArenaSpider(scrapy.Spider):
+    name = "bgarena"
+    allowed_domains = ["pt.boardgamearena.com"]
+    start_urls = [
+        "https://pt.boardgamearena.com/#!gamepanel?game=raceforthegalaxy",
+        # "https://www.arruda.blog.br/",
+    ]
+
+    def start_requests(self):
+        headers = Headers({'Content-Type': 'text/plain'})
+        for url in self.start_urls:
+            yield SplashRequest(url, self.parse,
+                # endpoint='render.html',
+                endpoint='execute',
+                args={'lua_source': script},
+                # args={
+                #     'har': 1,
+                #     'html': 1,
+                #     'wait': 5
+                # },
+                # encoding='latin-1'
+            )
+
+    def parse(self, response):
+        # //*[@id="pagesection_lastresults"]/div[@class="post"]/div[@class="postmessage"]/a
+        # import ipdb; ipdb.set_trace()
+
+        list_table_a = response.xpath('//*[@class="post"]/div[@class="postcontent"]/div[@class="postmessage"]/a')
+        for table_a in list_table_a:
+            table_link = table_a.xpath('@href').extract()[0]
+            game_name = table_a.xpath('span/text()').extract()[0]
+
+            bg_item = BgarenaGathererItem()
+            bg_item['link'] = table_link
+            bg_item['game'] = game_name
+            yield bg_item
+         # response.xpath('//*[@class="post"]/div[@class="postcontent"]/div[@class="postmessage"]/a').xpath('@href').extract()
+
+        filename = response.url.split("/")[-2] + '.html'
+        with open(filename, 'wb') as f:
+            f.write(response.body)
