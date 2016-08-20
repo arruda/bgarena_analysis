@@ -9,7 +9,7 @@ Spider that collects basic information about all game tables, from id=1 to X (co
 
 Example:
 
-```json
+```python
 {
 'creation_time': u'11/02/2011',
  'estimated_duration': u'10 mn',
@@ -25,7 +25,7 @@ Example:
 ```
 
 And, if the table actually doent exist, just save some simple information, ex:
-```json
+```python
 {'error': 'https://pt.boardgamearena.com/#!table?table=66893'}
 ```
 
