@@ -10,7 +10,7 @@ script = """
 function main(splash)
   local url = splash.args.url
   assert(splash:go(url))
-  assert(splash:wait(4.5))
+  assert(splash:wait(3.7))
   return {
     html = splash:html(),
     har = splash:har(),
@@ -26,14 +26,18 @@ class BGArenaTablesSpider(scrapy.Spider):
 
     tables_base_url = "https://pt.boardgamearena.com/#!table?table=%d"
 
-    last_checked_table_id = 64829
+    last_checked_table_id = 280482
+
+    # start_urls = [
+    #     tables_base_url % i for i in xrange(last_checked_table_id + 1, final_table_id)
+    # ]
 
     start_urls = [
-        tables_base_url % i for i in xrange(last_checked_table_id + 1, final_table_id)
+        tables_base_url % i for i in xrange(final_table_id, last_checked_table_id, -1)
     ]
 
     # start_urls = [
-    #     tables_base_url % 100000
+    #     tables_base_url % 85151
     # ]
 
     def start_requests(self):
@@ -74,7 +78,7 @@ class BGArenaTablesSpider(scrapy.Spider):
         if len(elo_rating_opt) == 0:
             return -1
 
-        return 1 if 'Ligado' in elo_rating_opt[0] else 0
+        return 1 if 'Ligado' in elo_rating_opt.extract()[0] else 0
 
     def get_gamespeed(self, response):
         get_gamespeed_opt = response.xpath('//*[@id="gameoption_200_displayed_value"]/text()')
@@ -85,11 +89,17 @@ class BGArenaTablesSpider(scrapy.Spider):
         return get_gamespeed_opt[0].extract().replace(u'\u2022', ':')
 
     def get_gamestatus(self, response):
-        was_abandonned = response.xpath('//*[@id="game_abandonned"]')
+        game_abandonned_sel = response.xpath('//*[@id="game_abandonned"]').xpath('@style').extract()[0]
+        was_abandonned = 'block' in game_abandonned_sel
+        game_cancelled_sel = response.xpath('//*[@id="game_cancelled"]').xpath('@style').extract()[0]
+        was_cancelled = 'block' in game_cancelled_sel
         if was_abandonned:
             return GameTableItem.GAMESTATUS_OPTS['abandonned']
         else:
-            game_status = response.xpath('//*[@id="status_detailled"]/text()')[0]
+            if was_cancelled:
+                return GameTableItem.GAMESTATUS_OPTS['cancelled']
+
+            game_status = response.xpath('//*[@id="status_detailled"]/text()').extract()[0]
             if 'terminou' in game_status:
                 return GameTableItem.GAMESTATUS_OPTS['finished']
             else:
