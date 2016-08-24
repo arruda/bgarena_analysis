@@ -13,6 +13,7 @@ class GameTableItem(scrapy.Item):
         'open': 0,
         'finished': 1,
         'abandonned': 2,
+        'cancelled': 3,
     }
 
     game = scrapy.Field()
