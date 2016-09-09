@@ -48,9 +48,11 @@ class GameTableMoveAction(DeclarativeBase):
     player1 summons a Amulet of Fire for...
     """
 
-    __tablename__ = "gametablemove"
+    __tablename__ = "gametablemoveaction"
     id = Column(Integer, primary_key=True)
+    game = Column('game', String)
     game_table_id = Column(Integer, ForeignKey('gametable.id'))
     game_table = relationship("GameTable", back_populates="moves")
     move_number = Column('move_number', Integer)
+    move_date = Column('move_date', String, nullable=True)
     action = Column('action', String, nullable=True)

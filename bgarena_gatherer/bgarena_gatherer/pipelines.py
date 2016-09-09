@@ -35,6 +35,8 @@ class BGArenaPipeline(object):
         Save game information in the database.
         This method is called for every item pipeline component.
         """
+        if 'testando' in item.keys():
+            return item
 
         if 'error' in item.keys():
             game_table_item = {
