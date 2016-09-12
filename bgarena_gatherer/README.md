@@ -29,8 +29,9 @@ And, if the table actually doent exist, just save some simple information, ex:
 {'error': 'https://pt.boardgamearena.com/#!table?table=66893'}
 ```
 
-### gbarenaXreplay
-**TODO**: Spider specific for a given `X` game, that will gather information abount it's game replay.
+### bgarena_race_for_galaxy_moves
+Spider specific for a Race for The galaxy tables that gathers information abount the moves of the crawled tables (only works with recent tables since old ones dont have play log).
+
 This spider can make use of the basic information gathered by the `bgarenatables` spider, to know which table of the given game is OK to be crawled (many old tables are using some pretty old version so they won't load the replay of the game).
 
 The idea is to gather information, about the moves (maybe just the texts instead of really going through the replay it self) that each player made.
