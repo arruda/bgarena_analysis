@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import datetime
+from functools import partial
 import json
 
 import scrapy
@@ -81,7 +82,7 @@ function main(splash)
 
     local url = splash.args.url
     assert(splash:go(url))
-    assert(splash:wait(4.0))
+    assert(splash:wait(6.0))
     return splash:html()
 end
 """
@@ -109,7 +110,6 @@ function main(splash)
 end
 """ % (ACC, PASS)
 
-
 class LastCheckedTableMoveManager(object):
     """
         Manage what was the last crawled table move of a given game
@@ -120,6 +120,7 @@ class LastCheckedTableMoveManager(object):
         self.session = self.start_session()
         self.final_list = []
         self.load_list()
+        print ">>>>> Current crawling list len: %d" % len(self.final_list)
 
     def start_session(self):
         engine = db_connect()
@@ -137,11 +138,20 @@ class LastCheckedTableMoveManager(object):
 
         return last_move[0]
 
-    def get_all_finished_tables(self):
+    def get_current_tables_to_craw_list(self):
+
+        already_crawled_table_ids = self.session.query(GameTableMoveAction.game_table_id).distinct()
+        tables_not_crawled = self.get_all_finished_tables_ids().filter(~GameTable.id.in_(already_crawled_table_ids))
+        tables_not_crawled = tables_not_crawled.order_by(GameTable.id.desc()).with_entities(GameTable.id, GameTable.table_link)
+        return tables_not_crawled
+
+
+    def get_all_finished_tables_ids(self):
         return self.session.query(GameTable)\
                 .filter(GameTable.game==self.game)\
                 .filter(GameTable.game_status == GameTableItem.GAMESTATUS_OPTS['finished'])\
-                .order_by(GameTable.id.desc()).with_entities(GameTable.id, GameTable.table_link)
+                .filter(GameTable.id > 277298) # ids smaller then this are of old tables and so with no logs
+
 
     def get_tables_with_id_smaller_than_given_id(self, table_id):
 
@@ -151,21 +161,11 @@ class LastCheckedTableMoveManager(object):
                 .filter(GameTable.id < table_id)\
                 .order_by(GameTable.id.desc()).with_entities(GameTable.id, GameTable.table_link)
 
-    def get_current_tables_to_craw_list(self):
-        last_move = self.get_last_crawled_move()
-        table_list = []
-        if not last_move:
-            table_list = self.get_all_finished_tables()
-        else:
-            last_table_id = last_move.game_table_id
-            table_list = self.get_tables_with_id_smaller_than_given_id(last_table_id)
-        return table_list
-
     def load_list(self):
         table_list = list(self.get_current_tables_to_craw_list())
         self.session.close()
         self.final_list = [
-            self.get_game_review_from_table_link(table_link) for id, table_link in table_list
+            [tid, self.get_game_review_from_table_link(table_link)] for tid, table_link in table_list
         ]
         return self.final_list
 
@@ -175,14 +175,16 @@ class LastCheckedTableMoveManager(object):
         return base_game_review_url % table_id
 
 
-# last_checked_manager = LastCheckedTableMoveManager("Race for the Galaxy")
+last_checked_manager = LastCheckedTableMoveManager("Race for the Galaxy")
 
 
 class BGRaceMovesSpider(scrapy.Spider):
     name = "bgracemoves"
     allowed_domains = ["en.boardgamearena.com"]
-    # game_reviews_urls = last_checked_manager.final_list
+    game_reviews_to_craw = last_checked_manager.final_list
     start_urls = ["https://en.boardgamearena.com/#!account",]
+
+    game_name = "Race for the Galaxy"
 
     def start_requests(self):
         for url in self.start_urls:
@@ -200,30 +202,54 @@ class BGRaceMovesSpider(scrapy.Spider):
             name_to_number[name.extract()] = i+1
         return name_to_number
 
-    def parse_real_request(self, response):
+    def replace_players_name_in_action(self, action, name_to_number):
+        players_names = name_to_number.keys()
 
-        import ipdb; ipdb.set_trace()
-        p_name_to_number = self.get_player_name_to_number_mapping(response)
+        order_by_len_names = sorted(players_names, key=len)
+        for p_name in order_by_len_names:
+            action = action.replace(p_name, 'player-%d' % name_to_number[p_name])
+        return action
+
+    def parse_move_info(self, div):
+        move_number_txt = div.xpath('text()').extract()
+        move_number_txt = move_number_txt[0] if move_number_txt else None
+        move_number = move_number_txt.replace('Move', '').replace(':', '').replace(' ', '')
+
+        time = div.xpath('span/text()').extract()
+        time = time[0] if time else None
+
+        return {'move_number': move_number, 'move_date': time}
+
+    def parse_action_info(self, div, name_to_number):
+        action = div.xpath('text()').extract()
+        action = action[0] if action else None
+        action = self.replace_players_name_in_action(action, name_to_number)
+        return action
+
+    def parse_real_request(self, tablemodel_id, response):
+
+
+        name_to_number = self.get_player_name_to_number_mapping(response)
         divs = response.xpath('//*[@id="gamelogs"]/div')
+        base_last_move = {
+            'game': self.game_name,
+            'game_table_id': tablemodel_id,
+        }
+        moves = []
         for div in divs:
             div_class = div.xpath('@class').extract()
             div_class = div_class[0] if div_class else None
-
             # info sobre o movimento (numero e hora)
             if div_class == 'smalltext':
-                move_number_txt = div.xpath('text()').extract()
-                move_number_txt = move_number_txt[0] if move_number_txt else None
-                move_number = move_number_txt.replace('Move').replace(':').replace(' ')
-
-                time = div.xpath('span/text()').extract()
-                time = time[0] of time else None
-                pass
+                last_move = {}
+                last_move.update(base_last_move)
+                last_move.update(self.parse_move_info(div))
             else:
-
-                pass
-
-
-        yield {'testando':response.url}
+                new_move_action = last_move.copy()
+                action = self.parse_action_info(div, name_to_number)
+                new_move_action['action'] = action
+                moves.append(new_move_action)
+        return {'moves': moves}
 
     def prepare_after_login_args(self, response):
         python_response =  json.loads(response.body)
@@ -246,16 +272,12 @@ class BGRaceMovesSpider(scrapy.Spider):
         return args
 
     def after_login(self, response):
-        urls = [
-            "https://en.boardgamearena.com/#!gamereview?table=22791725",
-            "https://en.boardgamearena.com/#!gamereview?table=22713855"
-        ]
-
         args = self.prepare_after_login_args(response)
-        for url in urls:
+        for tablemodel_id, url in self.game_reviews_to_craw:
+            parser_with_table_id = partial(self.parse_real_request, tablemodel_id)
             yield SplashRequest(
                 url,
-                self.parse_real_request,
+                parser_with_table_id,
                 endpoint='execute',
                 args=args,
         )
