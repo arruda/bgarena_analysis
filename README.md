@@ -5,6 +5,7 @@ Gathering and analysis of data from boardgamearena.com (part of the gathered inf
 
 * Rate of abandonned games x Elo Rating been used
 * Game Speed x Players Scores (per game)
+* Action taken x Player Score (in Race for the Galaxy)
 
 # LICENSE
 Project distributed under MIT license, see LICENSE file for more information.
