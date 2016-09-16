@@ -1,3 +1,4 @@
 *.pyc
 pt.boardgamearena.com*.html
 bgarena_gatherer/db_backup/*
+bgarena_analysis.sublime-*

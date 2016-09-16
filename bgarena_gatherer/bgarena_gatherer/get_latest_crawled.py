@@ -31,6 +31,10 @@ def last_crawled_table_id():
             get_table_id(game_table)
         )
 
+    #first time running spider, wont have any table saved, so
+    #return a given recent id, ex: 23972804
+    if len(table_ids) == 0:
+        return 23972804
     return sorted(table_ids)[0]
 
 if __name__ == '__main__':

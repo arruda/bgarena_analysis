@@ -14,3 +14,12 @@ db:
     - POSTGRES_PASSWORD=bgarena
   ports:
     - "5432:5432"
+
+# used only to export db data to local dir as csv files
+dbexp:
+  image: postgres:9.3
+  volumes:
+    - ./:/data
+  command: /bin/bash
+  links:
+    - db:db
