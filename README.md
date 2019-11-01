@@ -3,7 +3,7 @@ Gathering and analysis of data from boardgamearena.com (part of the gathered inf
 
 ## Some idea of things to analyse
 
-* Rate of abandonned games x Elo Rating been used
+* Rate of abandoned games x Elo Rating been used
 * Game Speed x Players Scores (per game)
 * Action taken x Player Score (in Race for the Galaxy)
 
