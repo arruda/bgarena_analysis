@@ -1,4 +1,4 @@
-lxml==3.6.1
+lxml==4.6.5
 psycopg2==2.6.2
 Scrapy==1.1.1
 scrapy-splash==0.7
